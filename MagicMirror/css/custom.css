@@ -1,0 +1,48 @@
+/* Assistive Smart Mirror — global high-contrast overrides for the built-in modules.
+   Copy to ~/MagicMirror/css/custom.css */
+
+:root {
+  --color-text: #ffffff;
+  --color-text-dimmed: #d0d0d0;
+  --color-text-bright: #ffffff;
+  --color-background: #000000;
+  --font-primary: "Roboto Condensed", "Arial", sans-serif;
+  --font-secondary: "Roboto", "Arial", sans-serif;
+  --gap-body-top: 40px;
+  --gap-body-left: 48px;
+  --gap-body-right: 48px;
+  --gap-body-bottom: 40px;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  font-weight: 400;
+}
+
+/* Thin grey text is hard to read through two-way glass: make everything solid and bold. */
+.dimmed, .light, .xsmall, .small, .normal, .medium, .large, .xlarge {
+  color: #fff !important;
+  font-weight: 400;
+}
+
+.module-header {
+  font-size: 28px;
+  color: #fff;
+  border-bottom: 2px solid #666;
+  text-transform: none;
+}
+
+/* Clock */
+.clock .date   { font-size: 40px; color: #fff; }
+.clock .time   { font-size: 130px; line-height: 1; font-weight: 600; }
+
+/* Calendar */
+.calendar { font-size: 30px; }
+.calendar .title   { color: #fff; font-weight: 600; }
+.calendar .time    { color: #ffc400; }
+.calendar .location { color: #d0d0d0; font-size: 24px; }
+.calendar tr { line-height: 1.5; }
+
+/* Centre region needs full width for the assistive dashboard */
+.region.middle.center { width: 100%; }

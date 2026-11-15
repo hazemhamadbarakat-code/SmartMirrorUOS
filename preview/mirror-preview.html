@@ -1,0 +1,396 @@
+<title>Mirror Screen Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: a framed two-way mirror holding the real dashboard, with a control desk underneath that plays the sensors. */
+:root {
+  color-scheme: dark;
+  --room: #16181b;        /* wall behind the mirror */
+  --frame: #3a3631;       /* frame timber */
+  --frame-hi: #57504a;
+  --glass: #000000;       /* what the monitor shows as "off" */
+  --ink: #ffffff;
+  --ink-dim: #b8b8b8;
+  --line: #3d3d3d;
+  --card: #0f0f0f;
+  --due: #ffc400;
+  --ok: #33e07a;
+  --missed: #ff5c5c;
+  --help: #d40000;
+  --desk: #202327;
+  --desk-line: #33373c;
+  --desk-ink: #e9ebee;
+  --desk-dim: #9aa1a9;
+  --font-screen: "Roboto Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--room);
+  color: var(--desk-ink);
+  font-family: var(--font-ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 22px; }
+header h1 { font-size: 1.35rem; font-weight: 600; margin: 0 0 4px; text-wrap: balance; }
+header p { margin: 0; color: var(--desk-dim); font-size: .95rem; max-width: 70ch; line-height: 1.5; }
+
+/* ---------- the mirror ---------- */
+.frame {
+  padding: clamp(10px, 2.2vw, 22px);
+  background: linear-gradient(145deg, var(--frame-hi), var(--frame) 40%, #2a2622);
+  border-radius: 6px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06);
+  position: relative;
+}
+.sensors {
+  position: absolute; left: 50%; bottom: clamp(2px, .6vw, 6px); transform: translateX(-50%);
+  display: flex; gap: 14px; align-items: center;
+}
+.sensors span { width: 9px; height: 9px; border-radius: 50%; background: #111; box-shadow: inset 0 0 0 2px #555; }
+.sensors .sonar { width: 22px; border-radius: 5px; }
+.screen {
+  container-type: inline-size;
+  position: relative; overflow: hidden;
+  aspect-ratio: 16 / 9; max-width: 100%;
+  background: var(--glass);
+  color: var(--ink);
+  font-family: var(--font-screen);
+  transition: filter .6s ease;
+}
+/* faint reflection of the two-way glass */
+.screen::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 50;
+  background: linear-gradient(115deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 62%, rgba(255,255,255,.04) 80%, rgba(255,255,255,0) 100%);
+}
+.screen.asleep .ui { opacity: 0; }
+.ui { position: absolute; inset: 0; padding: 3.2cqw 3.6cqw; transition: opacity .6s ease; display: grid; grid-template-rows: auto 1fr auto; gap: 1.6cqw; }
+
+.top { display: flex; justify-content: space-between; gap: 3cqw; }
+.date { font-size: 2.1cqw; }
+.time { font-size: 7.4cqw; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.appts { text-align: right; min-width: 0; }
+.appts h3, .card h3 { font-size: 1.6cqw; font-weight: 700; margin: 0 0 .6cqw; padding-bottom: .4cqw; border-bottom: .12cqw solid #666; }
+.appt { font-size: 1.55cqw; line-height: 1.45; }
+.appt b { font-weight: 600; }
+.appt i { font-style: normal; color: var(--due); margin-left: .6cqw; }
+
+.mid { display: grid; grid-template-rows: auto 1fr; gap: 1.2cqw; align-content: start; }
+.welcome { text-align: center; font-size: 3.2cqw; font-weight: 600; min-height: 4cqw; transition: opacity .4s; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.8cqw; align-items: start; }
+.card { background: var(--card); border: .14cqw solid var(--line); border-radius: 1cqw; padding: 1.2cqw 1.5cqw; }
+.row { display: flex; align-items: baseline; gap: 1cqw; padding: .55cqw 0; border-bottom: .07cqw solid #222; font-size: 1.75cqw; }
+.row:last-child { border-bottom: 0; }
+.t { font-weight: 700; min-width: 5.4cqw; font-variant-numeric: tabular-nums; }
+.n { flex: 1; min-width: 0; }
+.n small { display: block; font-size: 1.25cqw; color: var(--ink-dim); }
+.badge { font-size: 1.4cqw; font-weight: 700; white-space: nowrap; }
+.med-taken .t, .med-taken .n { color: var(--ink-dim); }
+.med-taken .badge { color: var(--ok); }
+.med-due { color: var(--due); }
+.med-due .badge { color: #000; background: var(--due); padding: .1cqw .7cqw; border-radius: .5cqw; }
+.task { cursor: pointer; }
+.chk { width: 2cqw; text-align: center; }
+.done .n { color: var(--ink-dim); text-decoration: line-through; }
+.done .chk, .done .badge { color: var(--ok); }
+.next { outline: .18cqw solid var(--ink); outline-offset: .25cqw; border-radius: .5cqw; padding-left: .5cqw; }
+
+.bottom { text-align: center; display: grid; gap: .6cqw; }
+.timer { font-size: 2.3cqw; }
+.timer span { color: var(--ink-dim); margin-right: 1.2cqw; }
+.timer b { font-size: 4.2cqw; font-variant-numeric: tabular-nums; }
+.hint { color: var(--ink-dim); font-size: 1.4cqw; }
+
+/* overlays */
+.ov { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.94); }
+.alert { max-width: 80%; text-align: center; padding: 2.6cqw 3.6cqw; border: .35cqw solid var(--due); border-radius: 1.4cqw; background: #000; }
+.ov-timer .alert { border-color: var(--ok); }
+.a-icon { font-size: 5.6cqw; line-height: 1; margin-bottom: .8cqw; }
+.a-title { font-size: 4.2cqw; font-weight: 800; line-height: 1.1; }
+.a-detail { font-size: 2.4cqw; margin-top: .8cqw; }
+.a-ack { margin-top: 2cqw; display: inline-block; background: var(--due); color: #000; font-weight: 700; font-size: 1.9cqw; padding: .5cqw 1.6cqw; border-radius: .7cqw; }
+.ov-timer .a-ack { background: var(--ok); }
+.ov-help { background: var(--help); animation: flash 1s steps(1) infinite; }
+.ov-help .alert { border-color: #fff; background: var(--help); }
+.h-title { font-size: 6.2cqw; font-weight: 800; letter-spacing: .1cqw; }
+.h-sub { font-size: 1.5cqw; margin-top: 1.4cqw; color: #ffd6d6; }
+@keyframes flash { 50% { background: #7a0000; } }
+@media (prefers-reduced-motion: reduce) { .ov-help { animation: none; } .screen, .ui { transition: none; } }
+
+/* ---------- control desk ---------- */
+.desk { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 760px) { .desk { grid-template-columns: 1fr; } }
+.panel { background: var(--desk); border: 1px solid var(--desk-line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.panel h2 { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--desk-dim); margin: 0 0 12px; font-weight: 600; }
+.btns { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+button {
+  font: 500 .9rem/1.25 var(--font-ui); color: var(--desk-ink); text-align: left;
+  background: #2b2f34; border: 1px solid #3c4148; border-radius: 8px; padding: 10px 12px; cursor: pointer;
+  display: grid; gap: 2px;
+}
+button small { color: var(--desk-dim); font-size: .75rem; font-weight: 400; }
+button:hover { background: #343941; }
+button:focus-visible { outline: 2px solid var(--due); outline-offset: 2px; }
+button.help-btn { border-color: #6b2323; background: #3a1d1d; }
+button.help-btn:hover { background: #4a2222; }
+.leds { display: flex; gap: 18px; margin-bottom: 14px; }
+.led { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--desk-dim); }
+.led i { width: 14px; height: 14px; border-radius: 50%; background: #2a2a2a; box-shadow: inset 0 0 0 1px #444; }
+.led.on i { box-shadow: 0 0 10px currentColor; background: currentColor; }
+.led.blink i { animation: blink .5s steps(1) infinite; background: currentColor; box-shadow: 0 0 10px currentColor; }
+@keyframes blink { 50% { background: #2a2a2a; box-shadow: inset 0 0 0 1px #444; } }
+.led.r { color: #ff4d4d; } .led.a { color: var(--due); } .led.g { color: var(--ok); }
+.led.r, .led.a, .led.g { }
+.led span { color: var(--desk-dim); }
+.say { font-size: .92rem; line-height: 1.5; min-height: 3em; border-left: 3px solid #4a5058; padding: 4px 0 4px 12px; color: var(--desk-ink); }
+.say:empty::before { content: "Nothing said yet."; color: var(--desk-dim); }
+.voice { margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--desk-dim); }
+.note { font-size: .82rem; color: var(--desk-dim); line-height: 1.5; margin: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Assistive Smart Mirror: screen preview</h1>
+    <p>This is how the dashboard will look through the two-way mirror. Use the buttons to act like the sensors: walk up, wave a hand, or press HELP. The sample medicines, tasks and appointments come from the project's example schedule.</p>
+  </header>
+
+  <div class="frame">
+    <div class="screen" id="screen">
+      <div class="ui">
+        <div class="top">
+          <div>
+            <div class="date" id="date"></div>
+            <div class="time" id="time"></div>
+          </div>
+          <div class="appts">
+            <h3>Appointments</h3>
+            <div class="appt"><b>Physiotherapy</b><i>Tue 11:00</i></div>
+            <div class="appt"><b>Doctor check-up</b><i>Thu 10:30</i></div>
+            <div class="appt"><b>Family visit</b><i>Sat 17:00</i></div>
+          </div>
+        </div>
+        <div class="mid">
+          <div class="welcome" id="welcome"></div>
+          <div class="grid">
+            <section class="card"><h3>Medicines today</h3><div id="meds"></div></section>
+            <section class="card"><h3 id="listHead">Today's list</h3><div id="tasks"></div></section>
+          </div>
+        </div>
+        <div class="bottom">
+          <div class="timer" id="timer" hidden><span>Timer</span><b id="timerVal">5:00</b></div>
+          <div class="hint" id="hint"></div>
+        </div>
+      </div>
+      <div id="overlay"></div>
+    </div>
+    <div class="sensors" aria-hidden="true"><span title="PIR"></span><span class="sonar" title="Hand sensor"></span></div>
+  </div>
+
+  <div class="desk">
+    <div class="panel">
+      <h2>Act like the sensors</h2>
+      <div class="btns">
+        <button id="b-approach"><span>Walk up to the mirror</span><small>PIR motion sensor</small></button>
+        <button id="b-hand"><span>Quick hand wave</span><small>Hand sensor, short</small></button>
+        <button id="b-hold"><span>Hold hand still</span><small>Hand sensor, 1.5 s</small></button>
+        <button id="b-med"><span>Medicine time</span><small>Reminder fires</small></button>
+        <button id="b-ex"><span>Exercise time</span><small>Reminder fires</small></button>
+        <button id="b-timer"><span>Finish the timer now</span><small>Skip the countdown</small></button>
+        <button id="b-away"><span>Walk away</span><small>Screen sleeps after 5 min</small></button>
+        <button id="b-help" class="help-btn"><span>Press HELP</span><small>Big physical button</small></button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Arduino lights</h2>
+      <div class="leds">
+        <div class="led r" id="ledR"><i></i><span>Red</span></div>
+        <div class="led a" id="ledA"><i></i><span>Amber</span></div>
+        <div class="led g" id="ledG"><i></i><span>Green</span></div>
+      </div>
+      <h2>The mirror says</h2>
+      <div class="say" id="say"></div>
+      <label class="voice"><input type="checkbox" id="voice"> Read it out loud in this browser</label>
+    </div>
+  </div>
+  <p class="note">On the real mirror the speech comes from the USB speaker, the lights are on the Arduino, and the buttons above are replaced by the PIR sensor, the hand sensor and the HELP button. Clicking a task on the screen also ticks it.</p>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const S = {
+    name: "Sara",
+    meds: [
+      { id: "bp", time: "08:00", name: "Blood pressure tablet", dose: "1 tablet with a glass of water", status: "taken", at: "08:03" },
+      { id: "vitd", time: "13:00", name: "Vitamin D", dose: "1 capsule with food", status: "upcoming" },
+      { id: "eve", time: "20:00", name: "Evening tablet", dose: "1 tablet after dinner", status: "upcoming" }
+    ],
+    tasks: [
+      { id: "teeth", label: "Brush teeth", at: "07:40" },
+      { id: "breakfast", label: "Eat breakfast", at: "08:10" },
+      { id: "water", label: "Drink a glass of water", at: null },
+      { id: "walk", label: "Short walk", at: null },
+      { id: "call", label: "Call family", at: null }
+    ],
+    alert: null, help: null, timerEnd: null, asleep: false, welcome: "", welcomeTimer: null
+  };
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const hhmm = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const greet = () => { const h = new Date().getHours(); return (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + ", " + S.name; };
+
+  function say(text) {
+    $("say").textContent = text;
+    try {
+      if ($("voice").checked && "speechSynthesis" in window) {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text); u.rate = 0.9; u.lang = "en-GB";
+        speechSynthesis.speak(u);
+      }
+    } catch (e) { /* speech is optional */ }
+  }
+
+  function wake() { S.asleep = false; }
+
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  function render() {
+    const now = new Date();
+    $("time").textContent = hhmm(now);
+    $("date").textContent = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    $("screen").classList.toggle("asleep", S.asleep);
+    $("welcome").textContent = S.welcome;
+
+    const meds = $("meds"); meds.replaceChildren();
+    const label = { upcoming: "", due: "Due now", taken: "", missed: "Not taken" };
+    for (const m of S.meds) {
+      const r = el("div", "row med-" + m.status);
+      r.append(el("span", "t", m.time));
+      const n = el("span", "n", m.name); n.append(el("small", "", m.dose)); r.append(n);
+      r.append(el("span", "badge", m.status === "taken" ? "✓ " + m.at : label[m.status]));
+      meds.append(r);
+    }
+
+    const tasks = $("tasks"); tasks.replaceChildren();
+    const done = S.tasks.filter((t) => t.at).length;
+    $("listHead").textContent = `Today's list  ${done}/${S.tasks.length}`;
+    let marked = false;
+    for (const t of S.tasks) {
+      const isNext = !t.at && !marked; if (isNext) marked = true;
+      const r = el("div", "row task" + (t.at ? " done" : "") + (isNext ? " next" : ""));
+      r.append(el("span", "chk", t.at ? "✓" : "○"), el("span", "n", t.label));
+      if (t.at) r.append(el("span", "badge", t.at));
+      r.addEventListener("click", () => { t.at = t.at ? null : hhmm(); render(); });
+      tasks.append(r);
+    }
+
+    $("timer").hidden = !S.timerEnd;
+    if (S.timerEnd) tickTimer();
+
+    let hint;
+    if (S.alert) hint = "Hold your hand near the mirror to confirm";
+    else if (S.tasks.some((t) => !t.at)) hint = "Hand near the mirror: tick next task  ·  Hold: start/stop timer";
+    else hint = "Hold your hand near the mirror to start a timer";
+    $("hint").textContent = hint;
+
+    const ov = $("overlay"); ov.replaceChildren();
+    if (S.help) {
+      const o = el("div", "ov ov-help"); const c = el("div", "alert");
+      c.append(el("div", "h-title", "HELP REQUESTED"), el("div", "a-detail", "Pressed at " + S.help), el("div", "a-detail", "Someone is coming. Stay where you are."), el("div", "h-sub", "Carer: hold a hand near the mirror for 2 seconds to cancel"));
+      o.append(c); ov.append(o);
+    } else if (S.alert) {
+      const a = S.alert;
+      const o = el("div", "ov ov-" + a.kind); const c = el("div", "alert");
+      c.append(el("div", "a-icon", a.icon), el("div", "a-title", a.title));
+      if (a.detail) c.append(el("div", "a-detail", a.detail));
+      c.append(el("div", "a-ack", a.kind === "timer" ? "Hold your hand near the mirror" : "Hold your hand near the mirror when done"));
+      o.append(c); ov.append(o);
+    }
+
+    // Arduino LEDs follow the same rules as node_helper.js
+    const set = (id, mode) => { $(id).classList.toggle("on", mode === "on"); $(id).classList.toggle("blink", mode === "blink"); };
+    set("ledR", S.help ? "blink" : "off");
+    set("ledA", !S.help && S.alert ? "blink" : "off");
+    set("ledG", !S.help && !S.alert && !S.asleep ? "on" : "off");
+  }
+
+  function tickTimer() {
+    if (!S.timerEnd) return;
+    const left = Math.max(0, Math.round((S.timerEnd - Date.now()) / 1000));
+    $("timerVal").textContent = `${Math.floor(left / 60)}:${pad(left % 60)}`;
+    if (left === 0) finishTimer();
+  }
+  function finishTimer() {
+    S.timerEnd = null; wake();
+    S.alert = { kind: "timer", icon: "⏰", title: "Timer finished" };
+    say("Your timer has finished.");
+    render();
+  }
+
+  function hand(long) {
+    wake();
+    if (S.help) {
+      if (long) { S.help = null; say("Help alert cancelled."); }
+      else say("(A quick wave does not cancel HELP. Hold your hand still to cancel.)");
+    } else if (S.alert) {
+      const a = S.alert; S.alert = null;
+      if (a.kind === "medication") { const m = S.meds.find((x) => x.id === a.ref); m.status = "taken"; m.at = hhmm(); say(`${m.name} marked as taken at ${m.at}.`); }
+      else if (a.kind === "exercise") say("Well done.");
+      else say("OK.");
+    } else if (!long) {
+      const t = S.tasks.find((x) => !x.at);
+      if (!t) say("Everything on today's list is done.");
+      else { t.at = hhmm(); const n = S.tasks.find((x) => !x.at); say(`${t.label}, done.` + (n ? ` Next: ${n.label}.` : " That was the last one. Well done.")); }
+    } else {
+      if (S.timerEnd) { S.timerEnd = null; say("Timer cancelled."); }
+      else { S.timerEnd = Date.now() + 5 * 60 * 1000; say("Timer started for 5 minutes."); }
+    }
+    render();
+  }
+
+  $("b-approach").onclick = () => {
+    wake();
+    S.welcome = greet();
+    clearTimeout(S.welcomeTimer); S.welcomeTimer = setTimeout(() => { S.welcome = ""; render(); }, 60000);
+    const left = S.tasks.filter((t) => !t.at).length;
+    const next = S.meds.find((m) => m.status === "upcoming");
+    say(`${greet()}. It is ${hhmm()}.` + (left ? ` You have ${left} task${left > 1 ? "s" : ""} left on your list today.` : "") + (next ? ` Your next medicine, ${next.name}, is at ${next.time}.` : ""));
+    render();
+  };
+  $("b-hand").onclick = () => hand(false);
+  $("b-hold").onclick = () => hand(true);
+  $("b-med").onclick = () => {
+    wake();
+    const m = S.meds.find((x) => x.status !== "taken") || S.meds[1];
+    m.status = "due";
+    S.alert = { kind: "medication", ref: m.id, icon: "💊", title: m.name, detail: m.dose };
+    say(`It is time to take ${m.name}. ${m.dose}. Hold your hand near the mirror when done.`);
+    render();
+  };
+  $("b-ex").onclick = () => {
+    wake();
+    S.alert = { kind: "exercise", icon: "🧘", title: "Gentle shoulder rolls", detail: "Sit up straight · Roll shoulders back 5 times · Then forward 5 times" };
+    say("Time for a short exercise: Gentle shoulder rolls. Sit up straight in a chair. Roll your shoulders back 5 times. Roll your shoulders forward 5 times.");
+    render();
+  };
+  $("b-timer").onclick = () => {
+    if (!S.timerEnd) { say("(Start a timer first: hold your hand still when no reminder is showing.)"); return; }
+    finishTimer();
+  };
+  $("b-away").onclick = () => {
+    if (S.alert || S.help || S.timerEnd) { say("(The screen stays on while a reminder, timer or HELP alert is active.)"); return; }
+    S.asleep = true; S.welcome = ""; $("say").textContent = "(Screen turned off. Walk up to wake it.)"; render();
+  };
+  $("b-help").onclick = () => {
+    wake();
+    if (!S.help) { S.help = hhmm(); say("Help has been requested. Please stay calm, someone is coming."); }
+    render();
+  };
+
+  render();
+  setInterval(() => { $("time").textContent = hhmm(); tickTimer(); }, 1000);
+})();
+</script>

@@ -1,0 +1,146 @@
+/* MMM-AssistCare — high-contrast, large-text styles.
+   Colours are paired with text/symbols (✓, "Due now", "Not taken") so nothing relies on colour alone. */
+
+.MMM-AssistCare {
+  --ac-fg: #ffffff;
+  --ac-muted: #b8b8b8;
+  --ac-card: #111111;
+  --ac-line: #444444;
+  --ac-due: #ffc400;      /* amber */
+  --ac-ok: #33e07a;       /* green */
+  --ac-missed: #ff5c5c;   /* red */
+  --ac-help: #d40000;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: left;
+  color: var(--ac-fg);
+}
+
+.ac-root { font-size: 30px; line-height: 1.35; }
+.ac-muted { color: var(--ac-muted); font-size: 24px; }
+
+.ac-welcome {
+  font-size: 56px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.ac-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+@media (orientation: portrait) {
+  .ac-grid { grid-template-columns: 1fr; }
+}
+
+.ac-card {
+  background: var(--ac-card);
+  border: 2px solid var(--ac-line);
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+.ac-h {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: var(--ac-fg);
+  text-transform: none;
+  border-bottom: 2px solid var(--ac-line);
+  padding-bottom: 8px;
+}
+
+.ac-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #222;
+}
+.ac-row:last-child { border-bottom: none; }
+.ac-time { font-weight: 700; min-width: 96px; font-variant-numeric: tabular-nums; }
+.ac-name { flex: 1; }
+.ac-sub { display: block; font-size: 22px; color: var(--ac-muted); }
+.ac-badge { font-size: 24px; font-weight: 700; white-space: nowrap; }
+
+.ac-med-taken  .ac-badge { color: var(--ac-ok); }
+.ac-med-due    { color: var(--ac-due); }
+.ac-med-due    .ac-badge { color: #000; background: var(--ac-due); padding: 2px 12px; border-radius: 8px; }
+.ac-med-missed .ac-badge { color: var(--ac-missed); }
+.ac-med-taken  .ac-name, .ac-med-taken .ac-time { color: var(--ac-muted); }
+
+.ac-task { cursor: pointer; }
+.ac-check { width: 36px; font-size: 32px; text-align: center; }
+.ac-done .ac-name { color: var(--ac-muted); text-decoration: line-through; }
+.ac-done .ac-check, .ac-done .ac-badge { color: var(--ac-ok); }
+.ac-next { outline: 3px solid var(--ac-fg); outline-offset: 4px; border-radius: 8px; padding-left: 8px; }
+
+.ac-timer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 40px;
+}
+.ac-timer-label { color: var(--ac-muted); margin-right: 20px; }
+.ac-timer-value { font-size: 72px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.ac-hint {
+  margin-top: 20px;
+  text-align: center;
+  color: var(--ac-muted);
+  font-size: 24px;
+}
+.ac-status {
+  margin-top: 12px;
+  text-align: center;
+  color: var(--ac-due);
+  font-size: 22px;
+}
+
+/* ---------- Full-screen reminder / HELP overlays ---------- */
+.ac-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.94);
+}
+.ac-alert {
+  max-width: 85vw;
+  text-align: center;
+  padding: 48px 64px;
+  border: 6px solid var(--ac-due);
+  border-radius: 24px;
+  background: #000;
+}
+.ac-overlay-timer .ac-alert { border-color: var(--ac-ok); }
+.ac-alert-icon { font-size: 110px; line-height: 1; margin-bottom: 16px; }
+.ac-alert-title { font-size: 72px; font-weight: 800; line-height: 1.15; }
+.ac-alert-detail { font-size: 44px; margin-top: 16px; }
+.ac-alert-ack {
+  margin-top: 36px;
+  font-size: 34px;
+  font-weight: 700;
+  color: #000;
+  background: var(--ac-due);
+  display: inline-block;
+  padding: 10px 28px;
+  border-radius: 12px;
+}
+.ac-steps { text-align: left; font-size: 40px; margin: 24px auto 0; display: inline-block; }
+.ac-steps li { margin: 8px 0; }
+
+.ac-overlay-help { background: var(--ac-help); animation: ac-flash 1s steps(1) infinite; }
+.ac-overlay-help .ac-alert { border-color: #fff; background: var(--ac-help); }
+.ac-help-title { font-size: 110px; font-weight: 900; letter-spacing: 2px; }
+
+@keyframes ac-flash {
+  0%   { background: var(--ac-help); }
+  50%  { background: #7a0000; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ac-overlay-help { animation: none; }
+}

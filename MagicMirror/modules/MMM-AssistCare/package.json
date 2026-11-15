@@ -1,0 +1,12 @@
+{
+  "name": "mmm-assistcare",
+  "version": "0.1.0",
+  "description": "Assistive reminders, checklist, timer, TTS and Arduino sensor bridge for MagicMirror²",
+  "main": "MMM-AssistCare.js",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@serialport/parser-readline": "^12.0.0",
+    "serialport": "^12.0.0"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+MagicMirror/modules/MMM-AssistCare/data/state.json
+MagicMirror/modules/MMM-AssistCare/data/state.json.tmp
+*.log
+.DS_Store
+Thumbs.db
