@@ -40,7 +40,7 @@ module.exports = NodeHelper.create({
 			if (!this.started) {
 				this.started = true;
 				this.cfg = payload;
-				this.init();
+				this.setupAssist();
 			}
 			this.broadcast();
 		} else if (!this.started) {
@@ -56,7 +56,8 @@ module.exports = NodeHelper.create({
 		}
 	},
 
-	init () {
+	// Not named init(): MagicMirror's NodeHelper calls its own init() on load, before any config exists.
+	setupAssist () {
 		this.scheduleFile = path.resolve(this.path, this.cfg.scheduleFile);
 		this.stateFile = path.resolve(this.path, this.cfg.stateFile);
 
