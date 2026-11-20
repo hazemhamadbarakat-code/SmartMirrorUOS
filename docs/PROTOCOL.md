@@ -84,3 +84,27 @@ LED states and restart any blink mid-flash.
 
 All grounds are common through the board. The Mega is 5 V logic throughout and
 the Pi's GPIO is 3.3 V only — the USB cable is the sole connection between them.
+
+## Diagnostics panel
+
+The mirror has a hidden maintenance screen: **triple-click the clock**, or press
+**A** with the mirror window focused. **Esc** or the Close button dismisses it,
+and it closes itself after `adminTimeoutSec` (60 s) with no button pressed.
+
+It shows the serial link state and port, the board's own uptime from `HB:`,
+live ultrasonic distance, PIR state, and counters for motion, hand, hand-hold
+and HELP events since the Pi started. The last eight lines received are printed
+verbatim, which is the quickest way to see whether the board is talking at all.
+
+Buttons drive each LED, the buzzer, a spoken test phrase, a test reminder and a
+`PING`. Two behaviours worth knowing:
+
+- While the panel is open, `updateOutputs()` stands down, so an LED set by hand
+  stays as the tester left it. Closing the panel restores the mirror's own LED
+  state.
+- `DIST?` is polled four times a second **only while the panel is open**. The
+  link is otherwise event-driven and quiet.
+
+The distance, PIR state and the counters are all derived on the Pi from events
+the board already sends. Counting button presses on the board itself would need
+a new firmware command; nothing in the sketch had to change for this panel.

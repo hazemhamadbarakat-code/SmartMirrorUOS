@@ -144,3 +144,75 @@
 @media (prefers-reduced-motion: reduce) {
   .ac-overlay-help { animation: none; }
 }
+
+/* ---------- Diagnostics panel (admin) ----------
+   Sits above every other overlay. Deliberately plainer than the user-facing
+   screens: this one is read by whoever is maintaining the mirror. */
+.ac-overlay-admin { background: rgba(0, 0, 0, 0.97); z-index: 2000; align-items: flex-start; }
+
+.ac-ad-card {
+  width: min(1200px, 94vw);
+  max-height: 94vh;
+  overflow-y: auto;
+  margin: 3vh auto;
+  padding: 24px 28px;
+  border: 3px solid var(--ac-line);
+  border-radius: 18px;
+  background: #000;
+  text-align: left;
+}
+
+.ac-ad-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.ac-ad-title { font-size: 40px; font-weight: 800; }
+.ac-ad-h {
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ac-muted);
+  margin: 22px 0 10px;
+}
+
+.ac-ad-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.ac-ad-cell {
+  border: 2px solid var(--ac-line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--ac-card);
+}
+.ac-ad-label { display: block; font-size: 18px; color: var(--ac-muted); }
+.ac-ad-value { display: block; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ac-ad-cell.ok  .ac-ad-value { color: var(--ac-ok); }
+.ac-ad-cell.bad .ac-ad-value { color: var(--ac-missed); }
+
+.ac-ad-btns { display: flex; flex-wrap: wrap; gap: 12px; }
+.ac-ad-btn {
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  background: #1c1c1c;
+  border: 2px solid var(--ac-line);
+  border-radius: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+}
+.ac-ad-btn:hover, .ac-ad-btn:focus-visible { background: #2e2e2e; border-color: #fff; outline: none; }
+.ac-ad-btn:active { background: var(--ac-due); color: #000; }
+.ac-ad-close { font-size: 22px; padding: 8px 18px; }
+
+.ac-ad-raw {
+  font-family: "DejaVu Sans Mono", "Courier New", monospace;
+  font-size: 18px;
+  line-height: 1.45;
+  color: var(--ac-ok);
+  background: #080808;
+  border: 2px solid var(--ac-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.ac-ad-foot { margin-top: 18px; font-size: 18px; color: var(--ac-muted); }

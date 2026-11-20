@@ -62,6 +62,10 @@ module.exports = NodeHelper.create({
 			this.calendarEvents = Array.isArray(payload) ? payload : [];
 		} else if (notification === "AC_TEST_REMINDER") {
 			this.pushAlert({ kind: "medication", refId: "test", title: "Test reminder", detail: "This is a test reminder." });
+		} else if (notification === "AC_ADMIN_SET") {
+			this.setAdmin(!!payload.open);
+		} else if (notification === "AC_ADMIN_ACTION") {
+			this.adminAction(String(payload.action || ""));
 		}
 	},
 
@@ -84,6 +88,15 @@ module.exports = NodeHelper.create({
 		this.speechQueue = [];
 		this.speaking = false;
 		this.helpBuzzTimer = null;
+
+		// Diagnostics, shown in the admin panel. Counters run from boot; the
+		// distance is only polled while the panel is open, so the serial link
+		// stays quiet in normal use.
+		this.admin = { open: false, openedAt: 0 };
+		this.counts = { motion: 0, hand: 0, gesture: 0, help: 0 };
+		this.distance = { cm: null, at: 0 };
+		this.boardUptimeMs = null;      // from the board's own HB counter
+		this.rawLines = [];             // last few lines straight off the wire
 
 		this.loadSchedule();
 		this.loadState();
@@ -269,9 +282,15 @@ module.exports = NodeHelper.create({
 			}
 		}
 
+		// The admin panel must never be left open in front of the user.
+		if (this.admin.open && nowMs - this.admin.openedAt > this.cfg.adminTimeoutSec * 1000) {
+			Log.info("[AssistCare] admin panel timed out");
+			this.setAdmin(false);
+		}
+
 		// Screen sleep when nobody is around and nothing needs attention.
 		const idleMs = nowMs - this.lastMotionAt;
-		if (this.screenOn && idleMs > this.cfg.screenTimeoutSec * 1000 && !this.alerts.length && !this.help.active && !this.timer.running) {
+		if (this.screenOn && idleMs > this.cfg.screenTimeoutSec * 1000 && !this.alerts.length && !this.help.active && !this.timer.running && !this.admin.open) {
 			this.setScreen(false);
 		}
 
@@ -319,6 +338,19 @@ module.exports = NodeHelper.create({
 	// ------------------------------------------------------------------ inputs
 	handleEvent (event, source) {
 		const now = Date.now();
+
+		// Distance replies are data for the admin panel, not an input event.
+		if (event.startsWith("DIST:")) {
+			const cm = Number(event.slice(5));
+			this.distance = { cm: Number.isFinite(cm) ? cm : null, at: now };
+			if (this.admin.open) this.broadcast();
+			return;
+		}
+		if (event === "MOTION") this.counts.motion++;
+		else if (event === "HAND") this.counts.hand++;
+		else if (event === "HANDHOLD") this.counts.gesture++;
+		else if (event === "HELP") this.counts.help++;
+
 		switch (event) {
 			case "READY":
 				this.ledCache = {};       // Uno was reset: resend LED states
@@ -453,8 +485,73 @@ module.exports = NodeHelper.create({
 		this.speak("Help alert cancelled.");
 	},
 
+	// ------------------------------------------------------------------ admin panel
+	setAdmin (open) {
+		if (this.admin.open === open) return;
+		this.admin = { open, openedAt: open ? Date.now() : 0 };
+		clearInterval(this.distTimer);
+		this.distTimer = null;
+
+		if (open) {
+			Log.info("[AssistCare] admin panel opened");
+			this.setScreen(true);
+			// Ask for a distance four times a second, but only while the panel
+			// is on screen. The rest of the time the link carries events only.
+			this.distTimer = setInterval(() => this.sendSerial("DIST?"), 250);
+		} else {
+			Log.info("[AssistCare] admin panel closed");
+			this.distance = { cm: null, at: 0 };
+			this.ledCache = {};          // the panel may have left the LEDs anywhere
+			this.updateOutputs();
+		}
+		this.broadcast();
+	},
+
+	adminAction (action) {
+		if (!this.admin.open) return;
+		this.admin.openedAt = Date.now();   // any button press restarts the idle timeout
+
+		if (action.startsWith("led:")) {
+			// Drive one LED directly. updateOutputs() stands down while the panel
+			// is open, so what the tester sets is what stays lit.
+			const [, led, mode] = action.split(":");
+			this.sendSerial(`LED:${LED_WIRE_NAMES[led] || led}:${mode}`);
+		} else if (action === "buzz") {
+			this.sendSerial("BUZZ:300", true);   // explicit test: bypass the no-buzzer guard
+		} else if (action === "speak") {
+			this.speak("Speaker test. The smart mirror can hear itself.");
+		} else if (action === "reminder") {
+			this.pushAlert({ kind: "medication", refId: "test", title: "Test reminder", detail: "Triggered from the admin panel." });
+		} else if (action === "ping") {
+			this.sendSerial("PING");
+		} else {
+			Log.warn(`[AssistCare] unknown admin action "${action}"`);
+		}
+		this.broadcast();
+	},
+
+	adminState () {
+		const now = Date.now();
+		return {
+			open: this.admin.open,
+			openedAt: this.admin.openedAt,
+			counts: { ...this.counts },
+			distanceCm: this.distance.cm,
+			distanceAgeMs: this.distance.at ? now - this.distance.at : null,
+			motionActive: now - this.lastMotionAt < this.cfg.screenTimeoutSec * 1000 && this.counts.motion > 0,
+			lastMotionAgoMs: now - this.lastMotionAt,
+			screenOn: !!this.screenOn,
+			speaking: this.speaking,
+			boardUptimeMs: this.boardUptimeMs,
+			serial: { ...this.serial, lastRxAgoMs: this.serial.lastRxAt ? now - this.serial.lastRxAt : null },
+			raw: this.rawLines.slice(-8)
+		};
+	},
+
 	// ------------------------------------------------------------------ LEDs
 	updateOutputs () {
+		// While the admin panel is open the tester owns the LEDs.
+		if (this.admin && this.admin.open) return;
 		let r = "OFF", a = "OFF", g = "OFF";
 		if (this.help.active) r = "BLINK";
 		else if (this.alerts.length) a = "BLINK";
@@ -496,7 +593,14 @@ module.exports = NodeHelper.create({
 			});
 			parser.on("data", (line) => {
 				this.serial.lastRxAt = Date.now();
-				const ev = this.translateIncoming(String(line).trim());
+				const raw = String(line).trim();
+				if (raw) {
+					// Keep the last few lines verbatim so the admin panel can show
+					// what the board is really saying, not just the parsed result.
+					this.rawLines.push({ at: Date.now(), line: raw });
+					if (this.rawLines.length > 12) this.rawLines.shift();
+				}
+				const ev = this.translateIncoming(raw);
 				if (ev) this.handleEvent(ev, "arduino");
 			});
 			const lost = (why) => {
@@ -534,7 +638,11 @@ module.exports = NodeHelper.create({
 		if (line === "EVT:MOTION:1") return "MOTION";
 		if (line === "EVT:MOTION:0") return "NOMOTION";
 		if (line === "EVT:HELP") return "HELP";
-		if (line.startsWith("HB:")) return "PONG";        // heartbeat, proves the link is alive
+		if (line.startsWith("HB:")) {                     // heartbeat, proves the link is alive
+			const ms = Number(line.slice(3));
+			if (Number.isFinite(ms)) this.boardUptimeMs = ms;
+			return "PONG";
+		}
 		// Reserved for step 2, when the HC-SR04 hand sensor is added to the sketch.
 		if (line === "EVT:HAND:1") return "HAND";
 		if (line === "EVT:HAND:0") return null;
@@ -558,11 +666,11 @@ module.exports = NodeHelper.create({
 		this.sendSerial("PING");
 	},
 
-	sendSerial (line) {
+	sendSerial (line, force) {
 		// This build has no buzzer; the firmware would answer BUZZ with ERR:CMD.
 		// Set buzzer: true in the module config if one is fitted and the sketch
-		// regains its BUZZ handler.
-		if (!this.cfg.buzzer && line.startsWith("BUZZ")) return false;
+		// regains its BUZZ handler. `force` is for the admin panel's own test.
+		if (!force && !this.cfg.buzzer && line.startsWith("BUZZ")) return false;
 		if (!this.port || !this.serial.connected) return false;
 		try {
 			this.port.write(`${line}\n`);
@@ -648,7 +756,8 @@ module.exports = NodeHelper.create({
 			help: this.help,
 			timer: this.timer,
 			welcome: Date.now() < this.welcome.until ? this.welcome.text : "",
-			sensors: { available: !!SerialPort, connected: this.serial.connected, port: this.serial.port }
+			sensors: { available: !!SerialPort, connected: this.serial.connected, port: this.serial.port },
+			admin: this.adminState()
 		});
 	}
 });
