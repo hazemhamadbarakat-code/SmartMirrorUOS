@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "author": "Smart Mirror project",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": 170, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "pir",
+      "top": -40,
+      "left": 70,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "help",
+      "top": 40,
+      "left": 300,
+      "attrs": { "color": "red", "label": "HELP", "xray": "1" }
+    },
+    { "type": "wokwi-led", "id": "ledGreen", "top": -30, "left": 480, "attrs": { "color": "green", "label": "GREEN" } },
+    { "type": "wokwi-led", "id": "ledAmber", "top": 50, "left": 480, "attrs": { "color": "yellow", "label": "AMBER" } },
+    { "type": "wokwi-led", "id": "ledRed", "top": 130, "left": 480, "attrs": { "color": "red", "label": "RED" } },
+    { "type": "wokwi-resistor", "id": "rGreen", "top": 10, "left": 560, "attrs": { "value": "330" } },
+    { "type": "wokwi-resistor", "id": "rAmber", "top": 90, "left": 560, "attrs": { "value": "330" } },
+    { "type": "wokwi-resistor", "id": "rRed", "top": 170, "left": 560, "attrs": { "value": "330" } },
+    { "type": "wokwi-buzzer", "id": "buzzer", "top": 250, "left": 470, "attrs": { "volume": "0.1" } }
+  ],
+  "connections": [
+    [ "pir:VCC", "uno:5V", "red", [ "v-20", "h-40" ] ],
+    [ "pir:GND", "uno:GND.1", "black", [ "v-10", "h-30" ] ],
+    [ "pir:OUT", "uno:2", "green", [ "v0", "h20" ] ],
+
+    [ "help:1.l", "uno:5", "blue", [ "v30", "h-40" ] ],
+    [ "help:2.l", "uno:GND.1", "black", [ "v20", "h-60" ] ],
+
+    [ "ledGreen:A", "uno:8", "green", [ "v60", "h-120" ] ],
+    [ "ledGreen:C", "rGreen:1", "black", [ "v20", "h20" ] ],
+    [ "rGreen:2", "uno:GND.2", "black", [ "v120", "h-300" ] ],
+
+    [ "ledAmber:A", "uno:9", "orange", [ "v60", "h-110" ] ],
+    [ "ledAmber:C", "rAmber:1", "black", [ "v20", "h20" ] ],
+    [ "rAmber:2", "uno:GND.2", "black", [ "v100", "h-300" ] ],
+
+    [ "ledRed:A", "uno:10", "red", [ "v60", "h-100" ] ],
+    [ "ledRed:C", "rRed:1", "black", [ "v20", "h20" ] ],
+    [ "rRed:2", "uno:GND.2", "black", [ "v80", "h-300" ] ],
+
+    [ "buzzer:1", "uno:GND.3", "black", [ "v20", "h-120" ] ],
+    [ "buzzer:2", "uno:11", "purple", [ "v-20", "h-100" ] ]
+  ]
+}

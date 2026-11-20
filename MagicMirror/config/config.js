@@ -34,10 +34,10 @@ let config = {
 			header: "Appointments",
 			position: "top_right",
 			config: {
-				maximumEntries: 4,
+				maximumEntries: 3,
 				maximumNumberOfDays: 14,
 				fade: false,
-				showLocation: true,
+				showLocation: false,   // keeps the appointments column to one line each, clear of the dashboard
 				timeFormat: "absolute",
 				dateFormat: "ddd D MMM, HH:mm",
 				fullDayEventDateFormat: "ddd D MMM",

@@ -2,12 +2,12 @@
 
 Low-cost assistive smart mirror for people with memory or mild cognitive difficulties.
 Raspberry Pi 4 runs **MagicMirror²** (open source, MIT) plus one custom module, **MMM-AssistCare**.
-An Arduino Uno handles the sensors and physical alerts over USB serial.
+An Arduino Mega 2560 handles the sensors and physical alerts over USB serial.
 
 ```
 PIR ─┐                        USB serial                 ┌─ HDMI monitor (behind two-way mirror)
-HC-SR04 ─┤  Arduino Uno  ◄──────────────────►  Raspberry Pi 4 ─┤
-HELP button ─┤  (assist_mirror.ino)   MOTION/HAND/HELP ►   MagicMirror² ├─ USB speaker (espeak-ng / Piper)
+HC-SR04 ─┤  Arduino Mega ◄──────────────────►  Raspberry Pi 4 ─┤
+HELP button ─┤ (smartmirror_node.ino)  EVT:MOTION/HAND/HELP ►  MagicMirror² ├─ USB speaker (espeak-ng / Piper)
 LEDs + buzzer ◄┘                      ◄ LED/BUZZ           + MMM-AssistCare
 ```
 
@@ -15,8 +15,13 @@ LEDs + buzzer ◄┘                      ◄ LED/BUZZ           + MMM-AssistCar
 
 | Path | What it is |
 | --- | --- |
-| `arduino/assist_mirror/assist_mirror.ino` | Uno sketch: PIR, hand detection (short `HAND` / long `HANDHOLD`), debounced HELP, LEDs, buzzer |
-| `docs/PROTOCOL.md` | Serial message format, LED meanings, **pin map and wiring** |
+| `arduino/smartmirror_node/smartmirror_node.ino` | **The firmware on the board.** PIR, HC-SR04 hand detection, debounced HELP, LEDs, buzzer |
+| `arduino/smartmirror_demo/smartmirror_demo.ino` | Standalone bench demo with human-readable serial output; needs no Pi |
+| `arduino/pin_check/pin_check.ino` | Minimal wiring check for the first build |
+| `docs/PROTOCOL.md` | Serial message format, LED meanings, **pin map and wiring**, as built |
+| `docs/SMART_MIRROR_SETUP.md` | Breadboard layout, Pi setup steps, troubleshooting table |
+| `docs/bench-wiring.html` | Interactive pin map for the first bench build |
+| `docs/wokwi-diagram.json` | Wokwi simulation of the step-1 circuit |
 | `MagicMirror/modules/MMM-AssistCare/` | Custom module (copied into `~/MagicMirror/modules/`) |
 | `…/node_helper.js` | Backend: serial link + auto-reconnect, reminder scheduler, checklist state, TTS queue, screen sleep |
 | `…/MMM-AssistCare.js` / `.css` | Dashboard and full-screen reminder / HELP overlays |
@@ -54,7 +59,8 @@ LEDs + buzzer ◄┘                      ◄ LED/BUZZ           + MMM-AssistCar
    bash scripts/setup-pi.sh
    ```
    Add `--piper` for the nicer voice. Log out and in once afterwards (serial permission).
-3. Upload `arduino/assist_mirror/assist_mirror.ino` to the Uno with the Arduino IDE, plug the Uno into the Pi.
+3. Upload `arduino/smartmirror_node/smartmirror_node.ino` with the Arduino IDE
+   (Board: Arduino Mega or Mega 2560, Processor: ATmega2560), then plug the board into the Pi.
 4. `pm2 logs mm` should show `serial open on /dev/ttyACM0`.
 
 ## Bench testing order (matches Notion phase 3–5)

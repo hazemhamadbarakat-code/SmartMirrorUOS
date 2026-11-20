@@ -29,6 +29,15 @@ try {
 const ARDUINO_VENDOR_IDS = ["2341", "2a03", "1a86", "0403", "10c4"]; // Arduino, Arduino.org, CH340, FTDI, CP210x
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+// The sketch on the Mega (smartmirror_mega.ino) speaks its own wire protocol,
+// which is not the set of internal event names used below. Everything crossing
+// the serial link is translated here, so the rest of the helper keeps working
+// unchanged with keyboard simulation and with any future firmware.
+//
+//   Mega -> Pi   RDY:UNO:1 | EVT:MOTION:1 | EVT:MOTION:0 | EVT:HELP | HB:<ms> | ERR:<text>
+//   Pi -> Mega   LED:<RED|AMBER|GREEN|ALL>:<ON|OFF|BLINK> | PING
+const LED_WIRE_NAMES = { R: "RED", A: "AMBER", G: "GREEN" };
+
 module.exports = NodeHelper.create({
 	start () {
 		this.started = false;
@@ -335,6 +344,11 @@ module.exports = NodeHelper.create({
 			case "HANDHOLD":
 				this.lastMotionAt = now;
 				this.setScreen(true);
+				// One wave in front of the ultrasonic sensor produces a burst of
+				// HAND events, which would tick the whole checklist in a second.
+				// Act on the first and ignore the rest of the burst.
+				if (now - (this.lastHandActionAt || 0) < this.cfg.handCooldownMs) break;
+				this.lastHandActionAt = now;
 				if (this.help.active) {
 					if (event === "HANDHOLD" && this.cfg.helpCancelByHandHold) this.cancelHelp(source);
 				} else if (this.alerts.length) {
@@ -452,7 +466,8 @@ module.exports = NodeHelper.create({
 
 	setLed (led, mode) {
 		if (this.ledCache[led] === mode) return;
-		if (this.sendSerial(`LED:${led}:${mode}`)) this.ledCache[led] = mode;
+		// The firmware wants full colour names, not single letters.
+		if (this.sendSerial(`LED:${LED_WIRE_NAMES[led] || led}:${mode}`)) this.ledCache[led] = mode;
 	},
 
 	// ------------------------------------------------------------------ serial
@@ -481,7 +496,7 @@ module.exports = NodeHelper.create({
 			});
 			parser.on("data", (line) => {
 				this.serial.lastRxAt = Date.now();
-				const ev = String(line).trim();
+				const ev = this.translateIncoming(String(line).trim());
 				if (ev) this.handleEvent(ev, "arduino");
 			});
 			const lost = (why) => {
@@ -502,6 +517,37 @@ module.exports = NodeHelper.create({
 		}
 	},
 
+	// One firmware line in, one internal event name out, or null to ignore it.
+	// Anything unknown is logged once rather than silently dropped, so a firmware
+	// change shows up in the pm2 log instead of looking like a dead sensor.
+	translateIncoming (line) {
+		if (!line) return null;
+		if (line.startsWith("RDY:")) {
+			// The firmware also answers PING with RDY, every 5 s. Treating each one as
+			// a fresh boot would clear the LED cache and resend every LED, restarting
+			// any blink phase mid-demo. Only a long gap means the board really reset.
+			const now = Date.now();
+			if (now - (this.lastReadyAt || 0) < 20000) { this.lastReadyAt = now; return null; }
+			this.lastReadyAt = now;
+			return "READY";
+		}
+		if (line === "EVT:MOTION:1") return "MOTION";
+		if (line === "EVT:MOTION:0") return "NOMOTION";
+		if (line === "EVT:HELP") return "HELP";
+		if (line.startsWith("HB:")) return "PONG";        // heartbeat, proves the link is alive
+		// Reserved for step 2, when the HC-SR04 hand sensor is added to the sketch.
+		if (line === "EVT:HAND:1") return "HAND";
+		if (line === "EVT:HAND:0") return null;
+		if (line === "EVT:GESTURE:SELECT") return "HANDHOLD";
+		if (line.startsWith("DIST:")) return line;
+		if (line.startsWith("ERR:")) {
+			Log.warn(`[AssistCare] Arduino rejected a command: ${line}`);
+			return null;
+		}
+		Log.warn(`[AssistCare] unrecognised serial line: ${line}`);
+		return null;
+	},
+
 	serialHeartbeat () {
 		if (!this.port || !this.serial.connected) return;
 		if (Date.now() - this.serial.lastRxAt > 15000) {
@@ -513,6 +559,10 @@ module.exports = NodeHelper.create({
 	},
 
 	sendSerial (line) {
+		// This build has no buzzer; the firmware would answer BUZZ with ERR:CMD.
+		// Set buzzer: true in the module config if one is fitted and the sketch
+		// regains its BUZZ handler.
+		if (!this.cfg.buzzer && line.startsWith("BUZZ")) return false;
 		if (!this.port || !this.serial.connected) return false;
 		try {
 			this.port.write(`${line}\n`);

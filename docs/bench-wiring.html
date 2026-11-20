@@ -1,0 +1,560 @@
+<title>Mirror Node Bench Wiring</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+  /* Layout: a single column of bench cards; the diagram is a board-left,
+     parts-right pin map with routed wires in a lane bus between them. */
+  :root {
+    --bg: #f4f2ee;
+    --surface: #ffffff;
+    --surface-2: #eceae4;
+    --line: #d6d2c8;
+    --fg: #1d1c19;
+    --muted: #6d695f;
+    --accent: #b4571a;
+    --accent-soft: #f0dfd0;
+    --wire-5v: #c23b22;
+    --wire-gnd: #45413a;
+    --wire-sig: #2f6f4e;
+    --wire-sig2: #b4571a;
+    --wire-sig3: #8b2f8b;
+    --ok: #2f6f4e;
+    --warn: #a8700c;
+    --danger: #b3261e;
+    --shadow: 0 1px 2px rgba(29, 28, 25, .06), 0 8px 24px rgba(29, 28, 25, .05);
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15161a;
+      --surface: #1c1e23;
+      --surface-2: #23262c;
+      --line: #343842;
+      --fg: #e9e7e2;
+      --muted: #9a9790;
+      --accent: #e5913f;
+      --accent-soft: #3a2a18;
+      --wire-5v: #e8694f;
+      --wire-gnd: #8d8a84;
+      --wire-sig: #58b588;
+      --wire-sig2: #e5913f;
+      --wire-sig3: #c57fd1;
+      --ok: #58b588;
+      --warn: #e0b24a;
+      --danger: #ef6a60;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .28);
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #15161a;
+    --surface: #1c1e23;
+    --surface-2: #23262c;
+    --line: #343842;
+    --fg: #e9e7e2;
+    --muted: #9a9790;
+    --accent: #e5913f;
+    --accent-soft: #3a2a18;
+    --wire-5v: #e8694f;
+    --wire-gnd: #8d8a84;
+    --wire-sig: #58b588;
+    --wire-sig2: #e5913f;
+    --wire-sig3: #c57fd1;
+    --ok: #58b588;
+    --warn: #e0b24a;
+    --danger: #ef6a60;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .28);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 32px 64px;
+  }
+
+  main { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace; }
+
+  header .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+  header h1 {
+    font-size: clamp(26px, 5vw, 38px);
+    line-height: 1.1;
+    margin: 0 0 10px;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+  header p.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+  }
+  .chip {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 4px 11px;
+    color: var(--muted);
+  }
+  .chip b { color: var(--fg); font-weight: 600; }
+
+  section.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+    min-width: 0;
+  }
+  section.card > h2 {
+    font-size: 13px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px;
+    font-weight: 500;
+  }
+  section.card > .h2sub { margin: 0 0 18px; color: var(--muted); font-size: 13.5px; }
+
+  .diagram-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+  svg.map { display: block; width: 100%; min-width: 660px; height: auto; }
+
+  .part-box { cursor: pointer; }
+  .wire { transition: opacity .15s ease, stroke-width .15s ease; }
+  .map.focused .wire { opacity: .14; }
+  .map.focused .wire.on { opacity: 1; stroke-width: 3.2; }
+  .map.focused .part-box rect.body { opacity: .4; }
+  .map.focused .part-box.on rect.body { opacity: 1; }
+  .map.focused .part-box text { opacity: .4; }
+  .map.focused .part-box.on text { opacity: 1; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+
+  .hint { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500;
+  }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr.on { background: var(--accent-soft); }
+  td.pin { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; white-space: nowrap; }
+  .table-scroll { overflow-x: auto; }
+
+  .proto { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .proto h3 {
+    font-size: 12px; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--accent);
+    margin: 0 0 10px; font-weight: 600;
+  }
+  .proto ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .proto li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .proto code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px; color: var(--fg); overflow-wrap: anywhere;
+  }
+  .proto small { color: var(--muted); font-size: 12.5px; }
+
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 14px; }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 12px; min-width: 0; }
+  ol.steps li::before {
+    content: counter(s, decimal-leading-zero);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px; color: var(--accent); padding-top: 3px; font-weight: 600;
+  }
+  ol.steps strong { display: block; font-weight: 600; }
+  ol.steps p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+  ol.steps code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+    overflow-wrap: anywhere;
+  }
+
+  .notes { display: flex; flex-direction: column; gap: 12px; }
+  .note { display: grid; grid-template-columns: 4px 1fr; gap: 12px; min-width: 0; }
+  .note i { border-radius: 2px; background: var(--warn); }
+  .note.danger i { background: var(--danger); }
+  .note.ok i { background: var(--ok); }
+  .note strong { display: block; }
+  .note p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+
+  footer { color: var(--muted); font-size: 12.5px; text-align: center; }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">Assistive Smart Mirror &middot; Step 1</p>
+    <h1>Uno bench node: PIR, HELP button, status LEDs, buzzer</h1>
+    <p class="lede">Breadboard wiring for the Arduino half of the mirror, before the frame, before the Pi, before the hand sensor. Get every input confirmed in the Serial Monitor here and the rest of the build stops fighting you.</p>
+    <div class="meta">
+      <span class="chip">Board <b>Arduino Uno R3</b></span>
+      <span class="chip">Serial <b>115200 8N1</b></span>
+      <span class="chip">Logic <b>5 V</b></span>
+      <span class="chip">Sketch <b>smartmirror_uno_step1.ino</b></span>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2>Pin map</h2>
+    <p class="h2sub">Tap a part or a table row to trace its wires.</p>
+    <div class="diagram-wrap">
+      <svg class="map" id="map" viewBox="0 0 880 600" role="img" aria-label="Wiring map from Arduino Uno pins to the PIR sensor, HELP button, three LEDs and the buzzer driver"></svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--wire-5v)"></i> 5 V</span>
+      <span><i style="background:var(--wire-gnd)"></i> GND</span>
+      <span><i style="background:var(--wire-sig)"></i> Input signal</span>
+      <span><i style="background:var(--wire-sig2)"></i> LED drive</span>
+      <span><i style="background:var(--wire-sig3)"></i> Buzzer drive</span>
+    </div>
+    <p class="hint">Every LED cathode returns through its own 330 &#8486; resistor. The buzzer is switched by an NPN transistor, not driven straight off D11.</p>
+  </section>
+
+  <section class="card">
+    <h2>Connections</h2>
+    <p class="h2sub">Breadboard build. Keep one ground rail and bring every return to it.</p>
+    <div class="table-scroll">
+      <table id="pintable">
+        <thead>
+          <tr><th>Uno pin</th><th>Goes to</th><th>Mode in sketch</th><th>Note</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Serial protocol</h2>
+    <p class="h2sub">Frozen now so the Pi module can be written against it later.</p>
+    <div class="proto">
+      <div>
+        <h3>Uno &rarr; Pi</h3>
+        <ul>
+          <li><code>RDY:UNO:1</code><small>Sent at boot and in reply to PING.</small></li>
+          <li><code>EVT:MOTION:1</code><small>PIR went high.</small></li>
+          <li><code>EVT:MOTION:0</code><small>5 s with no motion. Presence, not occupancy.</small></li>
+          <li><code>EVT:HELP</code><small>Debounced press, repeat-locked for 2 s.</small></li>
+          <li><code>HB:&lt;millis&gt;</code><small>Heartbeat every 10 s, so the Pi can spot a dead link.</small></li>
+          <li><code>ERR:&lt;text&gt;</code><small>Command the Uno could not parse.</small></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Pi &rarr; Uno</h3>
+        <ul>
+          <li><code>LED:RED:ON</code><small>Colours RED, AMBER, GREEN, ALL. Values ON, OFF, BLINK.</small></li>
+          <li><code>BUZZ:300</code><small>One beep in milliseconds, 1 to 5000, non-blocking.</small></li>
+          <li><code>PING</code><small>Liveness check.</small></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Bench test order</h2>
+    <p class="h2sub">Each step proves one thing. Do not skip ahead when one fails.</p>
+    <ol class="steps">
+      <li>
+        <strong>Power and LEDs only</strong>
+        <p>Wire the three LEDs and resistors. Upload, open Serial Monitor at 115200. Green should light and <code>RDY:UNO:1</code> should print.</p>
+      </li>
+      <li>
+        <strong>Command the LEDs from the host</strong>
+        <p>Send <code>LED:AMBER:BLINK</code>, then <code>LED:ALL:OFF</code>. If nothing happens, check the Serial Monitor line ending is set to Newline.</p>
+      </li>
+      <li>
+        <strong>HELP button</strong>
+        <p>Add the button between D5 and GND. One press prints <code>EVT:HELP</code> once, the red LED blinks and the buzzer chirps. Multiple lines per press means the debounce wiring is loose, not the code.</p>
+      </li>
+      <li>
+        <strong>Buzzer driver</strong>
+        <p>Send <code>BUZZ:1000</code>. If the Uno resets when it sounds, the buzzer is loading the pin directly: fit the NPN and the base resistor.</p>
+      </li>
+      <li>
+        <strong>PIR, after warm-up</strong>
+        <p>Power the PIR, then leave the bench for a full minute. The HC-SR501 self-calibrates and its output is meaningless until it settles. Then walk in: <code>EVT:MOTION:1</code>, and <code>EVT:MOTION:0</code> about 5 s after you stop moving.</p>
+      </li>
+      <li>
+        <strong>Trim the PIR pots</strong>
+        <p>Set sensitivity and the on-board time delay to the shortest usable values, so the sketch controls the hold time rather than the module. Record the final pot positions before anything is mounted in the frame.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Simulate it</h2>
+    <p class="h2sub">Two files in the project folder run the whole step in a browser.</p>
+    <ol class="steps">
+      <li>
+        <strong>Open a blank Uno project at wokwi.com</strong>
+        <p>Choose Arduino Uno. The editor gives you <code>sketch.ino</code> and a diagram tab.</p>
+      </li>
+      <li>
+        <strong>Paste both files</strong>
+        <p>Sketch body from <code>smartmirror_uno_step1.ino</code>, and the diagram tab from <code>diagram.json</code>.</p>
+      </li>
+      <li>
+        <strong>Run</strong>
+        <p>Click the PIR to toggle motion, click the button for HELP, watch the LEDs and the serial pane. You can type commands such as <code>LED:RED:BLINK</code> into the simulated serial monitor.</p>
+      </li>
+    </ol>
+    <p class="hint">The simulated buzzer is wired straight to D11 because Wokwi models an ideal load. The physical build keeps the NPN driver shown in the pin map.</p>
+  </section>
+
+  <section class="card">
+    <h2>Before you power it</h2>
+    <div class="notes">
+      <div class="note danger">
+        <i></i>
+        <div>
+          <strong>Never wire Uno pins to Raspberry Pi GPIO.</strong>
+          <p>The Uno runs 5 V logic and the Pi's GPIO pins are 3.3 V only. Connecting them damages the Pi. The two boards talk over the USB-A to USB-B data cable and nothing else.</p>
+        </div>
+      </div>
+      <div class="note">
+        <i></i>
+        <div>
+          <strong>Check LED polarity before power.</strong>
+          <p>Long leg is the anode and goes to the Uno pin; short leg is the cathode and goes through the resistor to ground. One resistor per LED, not one shared resistor.</p>
+        </div>
+      </div>
+      <div class="note">
+        <i></i>
+        <div>
+          <strong>The PIR output is 5 V and the module needs 5 V in.</strong>
+          <p>Feed it from the Uno 5 V pin while bench testing. Its output stays high for its own on-board delay, which is why the sketch adds its own 5 s hold rather than trusting the edge.</p>
+        </div>
+      </div>
+      <div class="note ok">
+        <i></i>
+        <div>
+          <strong>Breadboard now, perfboard later.</strong>
+          <p>Hold off on soldering until steps 1 and 2 both pass. Nothing on a breadboard goes behind a wall-mounted mirror.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Step 1 of the Uno build. Step 2 adds the HC-SR04 hand sensor on D3 and D4.</footer>
+</main>
+
+<script>
+  (function () {
+    var PINS = [
+      { id: "p5v",  label: "5V",  y: 70 },
+      { id: "pgnd", label: "GND", y: 112 },
+      { id: "pd2",  label: "D2",  y: 160 },
+      { id: "pd5",  label: "D5",  y: 210 },
+      { id: "pd8",  label: "D8",  y: 262 },
+      { id: "pd9",  label: "D9",  y: 312 },
+      { id: "pd10", label: "D10", y: 362 },
+      { id: "pd11", label: "D11", y: 412 }
+    ];
+
+    var PARTS = [
+      { id: "pir",   title: "PIR HC-SR501",  sub: "motion",        top: 30,  h: 86,  ports: ["VCC", "GND", "OUT"] },
+      { id: "help",  title: "HELP button",   sub: "momentary",     top: 140, h: 64,  ports: ["leg A", "leg B"] },
+      { id: "green", title: "Green LED",     sub: "330 Ω",    top: 228, h: 64,  ports: ["anode", "cathode"] },
+      { id: "amber", title: "Amber LED",     sub: "330 Ω",    top: 316, h: 64,  ports: ["anode", "cathode"] },
+      { id: "red",   title: "Red LED",       sub: "330 Ω",    top: 404, h: 64,  ports: ["anode", "cathode"] },
+      { id: "buzz",  title: "Buzzer + NPN",  sub: "1 kΩ base", top: 492, h: 86, ports: ["base", "+5 V", "emitter"] }
+    ];
+
+    var WIRES = [
+      { part: "pir",   pin: "p5v",  port: 0, kind: "5v" },
+      { part: "pir",   pin: "pgnd", port: 1, kind: "gnd" },
+      { part: "pir",   pin: "pd2",  port: 2, kind: "sig" },
+      { part: "help",  pin: "pd5",  port: 0, kind: "sig" },
+      { part: "help",  pin: "pgnd", port: 1, kind: "gnd" },
+      { part: "green", pin: "pd8",  port: 0, kind: "sig2" },
+      { part: "green", pin: "pgnd", port: 1, kind: "gnd" },
+      { part: "amber", pin: "pd9",  port: 0, kind: "sig2" },
+      { part: "amber", pin: "pgnd", port: 1, kind: "gnd" },
+      { part: "red",   pin: "pd10", port: 0, kind: "sig2" },
+      { part: "red",   pin: "pgnd", port: 1, kind: "gnd" },
+      { part: "buzz",  pin: "pd11", port: 0, kind: "sig3" },
+      { part: "buzz",  pin: "p5v",  port: 1, kind: "5v" },
+      { part: "buzz",  pin: "pgnd", port: 2, kind: "gnd" }
+    ];
+
+    var ROWS = [
+      { pin: "5V",  part: "pir",   to: "PIR VCC",                       mode: "power",          note: "Module needs 5 V; its output swings 5 V." },
+      { pin: "GND", part: "pir",   to: "PIR GND",                       mode: "ground",         note: "Common ground rail for everything." },
+      { pin: "D2",  part: "pir",   to: "PIR OUT",                       mode: "INPUT",          note: "High while triggered. Sketch holds presence 5 s after last high." },
+      { pin: "D5",  part: "help",  to: "HELP button, leg A",            mode: "INPUT_PULLUP",   note: "No external resistor. Pressed reads LOW." },
+      { pin: "GND", part: "help",  to: "HELP button, leg B",            mode: "ground",         note: "Use diagonally opposite legs on a 4-pin tactile switch." },
+      { pin: "D8",  part: "green", to: "Green LED anode",               mode: "OUTPUT",         note: "Cathode → 330 Ω → GND. Lit at boot to show the node is alive." },
+      { pin: "D9",  part: "amber", to: "Amber LED anode",               mode: "OUTPUT",         note: "Cathode → 330 Ω → GND. Reserved for reminder cues." },
+      { pin: "D10", part: "red",   to: "Red LED anode",                 mode: "OUTPUT",         note: "Cathode → 330 Ω → GND. Blinks on HELP." },
+      { pin: "D11", part: "buzz",  to: "1 kΩ → NPN base",     mode: "OUTPUT",         note: "Buzzer between 5 V and the collector; flyback diode across it." },
+      { pin: "GND", part: "buzz",  to: "NPN emitter",                   mode: "ground",         note: "Emitter to the same ground rail as the Uno." }
+    ];
+
+    var KIND_VAR = { "5v": "--wire-5v", "gnd": "--wire-gnd", "sig": "--wire-sig", "sig2": "--wire-sig2", "sig3": "--wire-sig3" };
+
+    var SVG_NS = "http://www.w3.org/2000/svg";
+    var map = document.getElementById("map");
+    var BOARD_X = 36, BOARD_W = 168, PIN_X = 204, PART_X = 560, PART_W = 284;
+
+    function el(name, attrs, text) {
+      var n = document.createElementNS(SVG_NS, name);
+      for (var k in attrs) n.setAttribute(k, attrs[k]);
+      if (text !== undefined) n.textContent = text;
+      return n;
+    }
+
+    function pinById(id) {
+      for (var i = 0; i < PINS.length; i++) if (PINS[i].id === id) return PINS[i];
+      return null;
+    }
+    function partById(id) {
+      for (var i = 0; i < PARTS.length; i++) if (PARTS[i].id === id) return PARTS[i];
+      return null;
+    }
+    function portY(part, index) {
+      var first = part.top + 30;
+      return first + index * 22;
+    }
+
+    // Board
+    map.appendChild(el("rect", { x: BOARD_X, y: 30, width: BOARD_W, height: 440, rx: 10,
+      fill: "var(--surface-2)", stroke: "var(--line)", "stroke-width": 1.5 }));
+    map.appendChild(el("text", { x: BOARD_X + 16, y: 60, "font-family": "IBM Plex Mono, monospace",
+      "font-size": 13, "font-weight": 600, fill: "var(--fg)" }, "Arduino Uno"));
+    map.appendChild(el("text", { x: BOARD_X + 16, y: 78, "font-family": "IBM Plex Mono, monospace",
+      "font-size": 11, fill: "var(--muted)" }, "R3 · 5 V"));
+    map.appendChild(el("rect", { x: BOARD_X - 10, y: 150, width: 16, height: 46, rx: 3,
+      fill: "var(--line)" }));
+    map.appendChild(el("text", { x: BOARD_X + 16, y: 450, "font-family": "IBM Plex Mono, monospace",
+      "font-size": 11, fill: "var(--muted)" }, "USB-B → Pi"));
+
+    // Pin stubs
+    PINS.forEach(function (p) {
+      var g = el("g", {});
+      g.appendChild(el("line", { x1: BOARD_X + BOARD_W, y1: p.y, x2: PIN_X, y2: p.y,
+        stroke: "var(--line)", "stroke-width": 3 }));
+      g.appendChild(el("circle", { cx: PIN_X, cy: p.y, r: 3.5, fill: "var(--muted)" }));
+      g.appendChild(el("text", { x: BOARD_X + BOARD_W - 8, y: p.y + 4, "text-anchor": "end",
+        "font-family": "IBM Plex Mono, monospace", "font-size": 12, "font-weight": 600,
+        fill: "var(--fg)" }, p.label));
+      map.appendChild(g);
+    });
+
+    // Wires, each in its own vertical lane
+    var wireNodes = [];
+    WIRES.forEach(function (w, i) {
+      var pin = pinById(w.pin);
+      var part = partById(w.part);
+      var lane = PIN_X + 22 + i * 22;
+      var y2 = portY(part, w.port);
+      var d = "M " + PIN_X + " " + pin.y + " H " + lane + " V " + y2 + " H " + PART_X;
+      var path = el("path", { d: d, fill: "none", stroke: "var(--" + KIND_VAR[w.kind].slice(2) + ")",
+        "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" });
+      path.setAttribute("class", "wire");
+      path.dataset.part = w.part;
+      map.appendChild(path);
+      wireNodes.push(path);
+    });
+
+    // Parts
+    PARTS.forEach(function (part) {
+      var g = el("g", {});
+      g.setAttribute("class", "part-box");
+      g.dataset.part = part.id;
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", "Highlight wiring for " + part.title);
+
+      var body = el("rect", { x: PART_X, y: part.top, width: PART_W, height: part.h, rx: 9,
+        fill: "var(--surface-2)", stroke: "var(--line)", "stroke-width": 1.5 });
+      body.setAttribute("class", "body");
+      g.appendChild(body);
+
+      g.appendChild(el("text", { x: PART_X + 14, y: part.top + 20,
+        "font-family": "Inter, sans-serif", "font-size": 13, "font-weight": 600,
+        fill: "var(--fg)" }, part.title));
+      g.appendChild(el("text", { x: PART_X + PART_W - 14, y: part.top + 20, "text-anchor": "end",
+        "font-family": "IBM Plex Mono, monospace", "font-size": 11,
+        fill: "var(--muted)" }, part.sub));
+
+      part.ports.forEach(function (label, idx) {
+        var y = portY(part, idx);
+        g.appendChild(el("circle", { cx: PART_X, cy: y, r: 3.5, fill: "var(--muted)" }));
+        g.appendChild(el("text", { x: PART_X + 14, y: y + 4,
+          "font-family": "IBM Plex Mono, monospace", "font-size": 11.5,
+          fill: "var(--muted)" }, label));
+      });
+
+      map.appendChild(g);
+    });
+
+    // Table
+    var tbody = document.querySelector("#pintable tbody");
+    ROWS.forEach(function (r) {
+      var tr = document.createElement("tr");
+      tr.dataset.part = r.part;
+      tr.innerHTML = "<td class='pin'>" + r.pin + "</td><td>" + r.to +
+        "</td><td class='mono'>" + r.mode + "</td><td>" + r.note + "</td>";
+      tbody.appendChild(tr);
+    });
+
+    // Highlighting
+    var active = null;
+    function focus(partId) {
+      active = (active === partId) ? null : partId;
+      map.classList.toggle("focused", active !== null);
+      wireNodes.forEach(function (w) {
+        w.classList.toggle("on", active !== null && w.dataset.part === active);
+      });
+      Array.prototype.forEach.call(map.querySelectorAll(".part-box"), function (g) {
+        g.classList.toggle("on", active !== null && g.dataset.part === active);
+      });
+      Array.prototype.forEach.call(tbody.querySelectorAll("tr"), function (tr) {
+        tr.classList.toggle("on", active !== null && tr.dataset.part === active);
+      });
+    }
+
+    map.addEventListener("click", function (e) {
+      var g = e.target.closest(".part-box");
+      if (g) focus(g.dataset.part);
+    });
+    map.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var g = e.target.closest(".part-box");
+      if (g) { e.preventDefault(); focus(g.dataset.part); }
+    });
+    tbody.addEventListener("click", function (e) {
+      var tr = e.target.closest("tr");
+      if (tr) focus(tr.dataset.part);
+    });
+  })();
+</script>

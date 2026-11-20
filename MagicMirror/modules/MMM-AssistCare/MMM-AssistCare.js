@@ -10,6 +10,8 @@ Module.register("MMM-AssistCare", {
 		scheduleFile: "data/schedule.json",
 		stateFile: "data/state.json",
 		serialPort: "",                 // "" = auto-detect, or e.g. "/dev/ttyACM0"
+		buzzer: false,                  // no buzzer in this build; BUZZ commands are not sent
+		handCooldownMs: 2000,           // ignore repeat hand events inside this window (one wave = one action)
 
 		catchUpMinutes: 60,             // after a reboot, still remind if the dose was this recent
 		repeatMinutes: 5,               // repeat an unacknowledged reminder every N minutes
@@ -39,8 +41,8 @@ Module.register("MMM-AssistCare", {
 		},
 
 		screen: {
-			onCommand: "wlr-randr --output HDMI-A-1 --on",
-			offCommand: "wlr-randr --output HDMI-A-1 --off",
+			onCommand: "wlr-randr --output HDMI-A-2 --on",
+			offCommand: "wlr-randr --output HDMI-A-2 --off",
 			env: { WAYLAND_DISPLAY: "wayland-0", XDG_RUNTIME_DIR: "/run/user/1000" }
 		}
 	},

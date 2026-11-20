@@ -46,3 +46,29 @@ body {
 
 /* Centre region needs full width for the assistive dashboard */
 .region.middle.center { width: 100%; }
+
+/* ---------- Layout fix: stop the centre dashboard colliding with the header ----------
+   MagicMirror centres the middle region vertically, so on a 16:9 screen the cards
+   ride up over the clock. Pin the region below the header band instead, and bring
+   the clock and calendar down to a size that leaves room for it. */
+
+.clock .date { font-size: 32px; }
+.clock .time { font-size: 92px; line-height: 1; font-weight: 600; }
+
+/* Keep appointment text in its own column instead of spilling across the top. */
+.region.top.right { max-width: 32vw; }
+.calendar { font-size: 26px; }
+.calendar .location { font-size: 20px; }
+
+.region.middle.center {
+  width: 100%;
+  position: absolute;
+  top: 250px;            /* clear of the clock and the appointments list */
+  left: 0;
+  transform: none;       /* cancel MagicMirror's vertical centring */
+  padding: 0 48px;
+  box-sizing: border-box;
+}
+
+/* The dashboard must not reach under the appointments column on the right. */
+.MMM-AssistCare { max-width: 1120px; }
