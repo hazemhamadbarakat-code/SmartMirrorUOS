@@ -18,6 +18,7 @@ LEDs + buzzer ◄┘                      ◄ LED/BUZZ           + MMM-AssistCar
 | `arduino/smartmirror_node/smartmirror_node.ino` | **The firmware on the board.** PIR, HC-SR04 hand detection, debounced HELP, LEDs, buzzer |
 | `arduino/smartmirror_demo/smartmirror_demo.ino` | Standalone bench demo with human-readable serial output; needs no Pi |
 | `arduino/pin_check/pin_check.ino` | Minimal wiring check for the first build |
+| `docs/OPERATING.md` | **Everything the mirror can do and how to do it** — controls, timer, medicines, diagnostics |
 | `docs/PROTOCOL.md` | Serial message format, LED meanings, **pin map and wiring**, as built |
 | `docs/SMART_MIRROR_SETUP.md` | Breadboard layout, Pi setup steps, troubleshooting table |
 | `docs/bench-wiring.html` | Interactive pin map for the first bench build |
