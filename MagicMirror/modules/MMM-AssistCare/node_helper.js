@@ -379,8 +379,15 @@ module.exports = NodeHelper.create({
 				// One wave in front of the ultrasonic sensor produces a burst of
 				// HAND events, which would tick the whole checklist in a second.
 				// Act on the first and ignore the rest of the burst.
-				if (now - (this.lastHandActionAt || 0) < this.cfg.handCooldownMs) break;
-				this.lastHandActionAt = now;
+				//
+				// A hand HOLD is exempt: it is deliberate, it always arrives about
+				// a second after the HAND event that starts it, and it is how a
+				// carer cancels a HELP alert. Rate-limiting it would swallow the
+				// cancel gesture every time.
+				if (event === "HAND") {
+					if (now - (this.lastHandActionAt || 0) < this.cfg.handCooldownMs) break;
+					this.lastHandActionAt = now;
+				}
 				if (this.help.active) {
 					if (event === "HANDHOLD" && this.cfg.helpCancelByHandHold) this.cancelHelp(source);
 				} else if (this.alerts.length) {
@@ -465,7 +472,19 @@ module.exports = NodeHelper.create({
 	},
 
 	triggerHelp (source) {
-		if (this.help.active) return;
+		if (this.help.active) {
+			// Pressing HELP again is the fallback way out, for a mirror with no
+			// keyboard and no working hand sensor. It is deliberately not instant:
+			// a confused user pressing twice in a row must not clear their own
+			// alert, so the second press only counts after helpCancelAfterSec.
+			const heldFor = Date.now() - this.help.since;
+			if (this.cfg.helpCancelBySecondPress && heldFor >= this.cfg.helpCancelAfterSec * 1000) {
+				this.cancelHelp(`${source} (second press)`);
+			} else {
+				Log.info(`[AssistCare] HELP pressed again after ${Math.round(heldFor / 1000)} s — ignored, alert stays up`);
+			}
+			return;
+		}
 		this.help = { active: true, since: Date.now() };
 		Log.warn(`[AssistCare] HELP triggered via ${source}`);
 		this.setScreen(true);
@@ -524,6 +543,10 @@ module.exports = NodeHelper.create({
 			this.pushAlert({ kind: "medication", refId: "test", title: "Test reminder", detail: "Triggered from the admin panel." });
 		} else if (action === "ping") {
 			this.sendSerial("PING");
+		} else if (action === "help") {
+			this.triggerHelp("admin panel");
+		} else if (action === "cancelhelp") {
+			this.cancelHelp("admin panel");
 		} else {
 			Log.warn(`[AssistCare] unknown admin action "${action}"`);
 		}

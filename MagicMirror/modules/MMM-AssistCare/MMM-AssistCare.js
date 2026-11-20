@@ -26,7 +26,9 @@ Module.register("MMM-AssistCare", {
 
 		helpSpeech: "Help has been requested. Please stay calm, someone is coming.",
 		helpBuzzSeconds: 30,
-		helpCancelByHandHold: true,     // a 1.5 s hand hold cancels HELP (for the carer)
+		helpCancelByHandHold: true,     // a hand held near the mirror cancels HELP (for the carer)
+		helpCancelBySecondPress: true,  // pressing HELP again also cancels it — the no-keyboard fallback
+		helpCancelAfterSec: 10,         // but not for this long, so a double-tap cannot clear the alert
 
 		keyboardSimulation: true,       // M motion, H hand, J hand-hold, E help, C cancel help, R test reminder
 
@@ -246,7 +248,10 @@ Module.register("MMM-AssistCare", {
 		const t = new Date(help.since);
 		card.appendChild(this.el("div", "ac-alert-detail", `Pressed at ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`));
 		card.appendChild(this.el("div", "ac-alert-detail", "Someone is coming. Stay where you are."));
-		if (this.config.helpCancelByHandHold) card.appendChild(this.el("div", "ac-muted", "Carer: hold a hand near the mirror for 2 seconds to cancel"));
+		const ways = [];
+		if (this.config.helpCancelByHandHold) ways.push("hold a hand close to the mirror for a second");
+		if (this.config.helpCancelBySecondPress) ways.push(`press HELP again after ${this.config.helpCancelAfterSec} seconds`);
+		if (ways.length) card.appendChild(this.el("div", "ac-muted", `Carer: ${ways.join(", or ")}, to cancel`));
 		ov.appendChild(card);
 		return ov;
 	},
@@ -328,6 +333,8 @@ Module.register("MMM-AssistCare", {
 		btns.appendChild(this.adminButton(ad.speaking ? "Speaking…" : "Speaker", "speak"));
 		btns.appendChild(this.adminButton("Test reminder", "reminder"));
 		btns.appendChild(this.adminButton("Ping board", "ping"));
+		btns.appendChild(this.adminButton(s.help.active ? "Cancel HELP" : "Trigger HELP",
+			s.help.active ? "cancelhelp" : "help"));
 		card.appendChild(btns);
 
 		// --- raw serial ---

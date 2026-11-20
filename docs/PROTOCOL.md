@@ -108,3 +108,22 @@ Buttons drive each LED, the buzzer, a spoken test phrase, a test reminder and a
 The distance, PIR state and the counters are all derived on the Pi from events
 the board already sends. Counting button presses on the board itself would need
 a new firmware command; nothing in the sketch had to change for this panel.
+
+## Cancelling a HELP alert
+
+A HELP alert blocks screen sleep and stays on screen until something clears it.
+There are three ways out, in the order a carer would reach for them:
+
+1. **Hold a hand close to the mirror** for a second. The firmware sends
+   `EVT:GESTURE:SELECT` when the distance stays under `SELECT_CM` (8 cm) for
+   `SELECT_HOLD_MS`, and the helper maps that to its `HANDHOLD` event.
+2. **Press HELP again**, at least `helpCancelAfterSec` (10 s) after it was
+   raised. Earlier presses are logged and ignored, so a confused user pressing
+   twice cannot clear their own alert.
+3. **The diagnostics panel**, which shows a Cancel HELP button while an alert
+   is up, and a Trigger HELP button when there is none.
+
+The hand cooldown that stops one wave ticking the whole checklist does **not**
+apply to `HANDHOLD`. A hold always arrives about a second after the `EVT:HAND:1`
+that begins it, so rate-limiting it would have swallowed the cancel gesture
+every time.
